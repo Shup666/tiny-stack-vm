@@ -1,5 +1,11 @@
+// Tiny stack VM: data stack D (256 slots), call stack C (64), memory M (256 cells), output O (64 KiB).
+// Opcode table rows are [opcode, operand bytes, pops, pushes]; im[op] is the operand length (-1 = invalid).
+// Exit codes: 0 halt, 2 stack underflow, 3 stack overflow, 4 divide by zero, 5 invalid opcode,
+// 6 bad memory address, 7 call stack overflow, 8 return with empty call stack,
+// 9 pc out of range, 10 step limit, 11 output overflow.
 import {mkdirSync,readdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
+const MAX_STEPS=1e6;
 const im=new Int8Array(256).fill(-1),po=new Int8Array(256),pu=new Int8Array(256);
 for(const t of [[0,0,0,0],[1,1,0,1],[2,4,0,1],[3,0,1,0],[4,0,1,2],[5,0,2,2],[6,0,2,3],[7,0,3,3],[16,0,2,1],[17,0,2,1],[18,0,2,1],[19,0,2,1],[20,0,2,1],[21,0,2,1],[22,0,2,1],[23,0,1,1],[24,0,2,1],[25,0,2,1],[26,0,2,1],[27,0,1,1],[28,0,2,1],[29,0,2,1],[30,0,2,1],[32,0,2,1],[33,0,2,1],[34,0,2,1],[48,2,0,0],[49,2,1,0],[50,2,1,0],[51,2,0,0],[52,0,0,0],[64,0,1,1],[65,0,2,0],[80,0,1,0],[81,0,1,0],[82,0,0,1],[83,0,1,0]]){im[t[0]]=t[1];po[t[0]]=t[2];pu[t[0]]=t[3];}
 const te=new TextEncoder();
@@ -8,7 +14,7 @@ function run(p:Uint8Array,g:Uint8Array){
  let s=0,c=0,l=0,j=0,pc=0,n=0;
  const end=(x:number)=>({o:O.slice(0,l),c:x});
  for(;;){
-  if(n===1e6)return end(10);
+  if(n===MAX_STEPS)return end(10);
   if(pc<0||pc>=p.length)return end(9);
   const op=p[pc],k=im[op];
   if(k<0)return end(5);
